@@ -107,6 +107,12 @@ def mini_batch(label_dict, char_dict, labels, names, batch_size, batch_index):
 
     return label_batch, np.asarray(name_batch), name_length
 
+def write_mapping(tags, output_filename):
+    with open(output_filename, 'w', encoding='utf-8') as f:
+        for i, tag in enumerate(tags):
+            f.write(tag)
+            f.write("\n")
+
 def main():
 
     if len(sys.argv) != 4:
@@ -131,6 +137,9 @@ def main():
 
     char_dict = {k: v for v, k in enumerate(char_set)}
 
+    write_mapping(label_dict, "label_dict.txt")
+    write_mapping(char_dict, "char_dict.txt")
+
     char_ids_ph, name_lengths_ph, y_ph = create_placeholders()
 
     train_op, probs_op = create_graph(char_ids_ph, name_lengths_ph, y_ph, len(char_set), len(label_dict))
@@ -143,7 +152,7 @@ def main():
         sess.run(init)
 
         batch_size = 20
-        for epoch in range(100):
+        for epoch in range(10):
             print("Epoch " + str(epoch))
             acc_train = []
             for batch_index in range(floor(len(names_train) / batch_size)):
@@ -169,7 +178,10 @@ def main():
 
             print("Dev acc: " + str(np.mean(acc_dev)))
 
-    # Add code to save the model, and resource files ....
+        saver = tf.train.Saver()
+        builder = tf.saved_model.builder.SavedModelBuilder("./namecat_model/{}")
+        builder.add_meta_graph_and_variables(sess, [tf.saved_model.tag_constants.SERVING])
+        builder.save()
 
 if __name__ == "__main__":
     main()
