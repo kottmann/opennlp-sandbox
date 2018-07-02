@@ -18,6 +18,7 @@
 package org.apache.opennlp.namecat;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -53,7 +54,7 @@ public class NameCategorizer {
     //Path tmpModelPath = ModelUtil.writeModelToTmpDir(modelZipPackage);
 
     Path tmpModelPath = Paths.get("/home/blue/dev/opennlp-sandbox/tf-ner-poc/" +
-        "src/main/python/namecat/namecat_model/{}");
+        "src/main/python/namecat/namecat_model9");
 
     SavedModelBundle model = SavedModelBundle.load(tmpModelPath.toString(), "serve");
     session = model.session();
@@ -77,9 +78,11 @@ public class NameCategorizer {
       nameLengths[nameIndex] = names[nameIndex].length();
     }
 
-    try (Tensor<?> charTensor = Tensor.create(charIds);
+    try (Tensor<?> dropout = Tensor.create(1f, Float.class);
+         Tensor<?> charTensor = Tensor.create(charIds);
          Tensor<?> nameLength = Tensor.create(nameLengths)) {
       List<Tensor<?>> result = session.runner()
+          .feed("dropout_keep_prop", dropout)
           .feed("char_ids", charTensor)
           .feed("name_lengths", nameLength)
           .fetch("norm_probs", 0).run();
@@ -93,14 +96,22 @@ public class NameCategorizer {
       List<String> cats = new ArrayList<>();
       for (float[] prob : probs) {
         if (prob[0] > 0.5) {
-          cats.add("M");
+          cats.add("F");
         }
         else {
-          cats.add("F");
+          cats.add("M");
         }
       }
 
       return cats.toArray(new String[2]);
     }
+  }
+
+  public static void main(String[] args) throws Exception {
+    NameCategorizer cat = new NameCategorizer(
+        new FileInputStream("/home/blue/dev/opennlp-sandbox/tf-ner-poc/src/main/python/namecat/char_dict.txt"),
+        null);
+
+    System.out.println(cat.categorize(new String[]{"Lena Krakau"})[0]);
   }
 }
