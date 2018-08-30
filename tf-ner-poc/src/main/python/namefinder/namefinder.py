@@ -346,8 +346,8 @@ def write_mapping(tags, output_filename):
 
 def main():
 
-    if len(sys.argv) != 5:
-        print("Usage namefinder.py embedding_file train_file dev_file test_file")
+    if len(sys.argv) != 4:
+        print("Usage namefinder.py embedding_file train_file dev_file")
         return
 
     name_finder = NameFinder(100)
